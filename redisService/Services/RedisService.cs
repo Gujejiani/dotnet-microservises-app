@@ -6,9 +6,12 @@ using StackExchange.Redis;
 
 class RedisService: IRedisService   {
     private readonly IDatabase _db;
+
+    private readonly IConnectionMultiplexer redis;
     
     public RedisService( IConnectionMultiplexer connectionMultiplexer) {
         _db =  connectionMultiplexer.GetDatabase();
+        redis = connectionMultiplexer;
     }
 
 
@@ -20,11 +23,19 @@ class RedisService: IRedisService   {
         var jsonData = JsonSerializer.Serialize(data);
 
         // Store JSON string in Redis
-        await _db.StringSetAsync(key, jsonData);
+       var stored =  await _db.StringSetAsync(key, jsonData);
 
         Console.WriteLine($"Data stored in Redis with key: {key}");
+
+        if(stored){
+            PublishUpdate($"Data stored in Redis with key: {key}");
+         return true;
+        }
+
+        return false;
+
         
-        return true;
+      
     }
 
     public async Task<string> ReceiveDataAsync(string key)
@@ -39,7 +50,13 @@ class RedisService: IRedisService   {
         await SetDataAsync("receivedDataKey", receivedData);
 
         // Return the received data
-        return receivedData;
+        return receivedData.HasValue ? receivedData.ToString() : string.Empty;
+    }
+
+    public void PublishUpdate(string message)
+    {
+        var pubsub = redis.GetSubscriber();
+        pubsub.Publish("db-updates", message);
     }
 
 }

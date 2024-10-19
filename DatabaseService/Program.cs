@@ -1,3 +1,6 @@
+using StackExchange.Redis;
+using databaseService.Services;
+
 var builder = WebApplication.CreateBuilder(args);
 
 // Add services to the container.
@@ -5,7 +8,24 @@ var builder = WebApplication.CreateBuilder(args);
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
 
+
+builder.Services.AddSingleton<IDatabaseService, DatabaseService>();
+
+builder.Services.AddSingleton<IConnectionMultiplexer>(sp => 
+// TODO provide the connection string to your Redis instance
+{
+    var configuration = ConfigurationOptions.Parse("localhost:6379", true);
+    return ConnectionMultiplexer.Connect(configuration);
+});
+
 var app = builder.Build();
+
+using (var scope = app.Services.CreateScope())
+{
+    var databaseService = scope.ServiceProvider.GetRequiredService<IDatabaseService>();
+    databaseService.SubscribeToUpdates();  // This will ensure the service starts listening for updates
+    Console.WriteLine("Subscribed to updates");
+}
 
 // Configure the HTTP request pipeline.
 if (app.Environment.IsDevelopment())

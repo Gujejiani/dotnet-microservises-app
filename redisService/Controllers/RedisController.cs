@@ -2,17 +2,18 @@
 
 using Microsoft.AspNetCore.Components;
 using Microsoft.AspNetCore.Mvc;
+using redisService.Dtos;
 
-namespace REDISSERVICE.Controllers 
+namespace redisService.Controllers 
 
 {
     [Microsoft.AspNetCore.Mvc.Route("api/[controller]")]
     [ApiController]
-    public class RedisController : ControllerBase
+    public class RedisApiController : ControllerBase
     {
         private readonly IRedisService _redisService;
 
-        public RedisController(IRedisService redisService)
+        public RedisApiController(IRedisService redisService)
         {
             _redisService = redisService;
         }
@@ -25,15 +26,11 @@ namespace REDISSERVICE.Controllers
             return Ok(result);
         }
 
-        public class MyDataModel
+        
+        [HttpPost("saveInRedis/{key}")]
+        public async Task<IActionResult> Post([FromBody] CreatePromotionDto model, string key)
         {
-            public string Property1 { get; set; } ="";
-            public int Property2 { get; set; } =0;
-        }
-        [HttpPost("saveInRedis")]
-        public async Task<IActionResult> Post([FromBody] MyDataModel model)
-        {
-            await _redisService.SetDataAsync("test", model);
+            await _redisService.SetDataAsync(key, model);
             return Ok();
         }
     }
